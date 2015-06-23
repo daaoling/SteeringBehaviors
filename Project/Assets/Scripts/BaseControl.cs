@@ -5,37 +5,44 @@ using System.Collections.Generic;
 using System.Linq;
 
 
-public interface IBoid
+
+
+
+public class BaseControl : MonoBehaviour
 {
-    Vector3 getVelocity();
-    float getMaxVelocity();
+    public Transform target;
 
-    Vector3 getPosition();
+    public Vector3 velocity;
 
-    float getMass();
-}
+    public SteeringManager steering;
 
+    public float MAX_VELOCITY { get { return 3.0f; } }
 
-public class BaseControl : IBoid
-{
+    public float mass { get { return 1.0f; } }
 
-    public Vector3 getVelocity()
+    void Awake()
     {
-        throw new NotImplementedException();
+        velocity = Vector3.zero;
+
+        steering = new SteeringManager(this);
     }
 
-    public float getMaxVelocity()
+    void Update()
     {
-        throw new NotImplementedException();
+        if (needSeek) steering.seek(target.transform.position);
+
+        steering.update();
     }
 
-    public Vector3 getPosition()
+    bool needSeek = true;
+    void OnGUI()
     {
-        throw new NotImplementedException();
-    }
+        if (GUI.Button(new Rect(10, 10, 150, 100), "I am a button"))
+        {
+            needSeek = false;
 
-    public float getMass()
-    {
-        throw new NotImplementedException();
+            steering.reset();
+        }
+
     }
 }

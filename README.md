@@ -15,9 +15,9 @@
 
 
 occupy
-
 objective
-
+trajectory
+drastically
 
 参考链接：
 

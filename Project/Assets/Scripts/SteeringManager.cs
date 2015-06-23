@@ -7,85 +7,86 @@ using System.Linq;
 public class SteeringManager {
 
     public Vector3 steering;
-    public IBoid host;
- 
+    public BaseControl host;
+
+    public float MAX_FORCE = 10.0f;
 
     /// The constructor
-    public SteeringManager(IBoid host)
+    public SteeringManager(BaseControl host)
     {
         this.host = host;
         this.steering = Vector3.zero;
     }
- 
-    //// The public API (one method for each behavior)
-    //public function seek(target :Vector3D, slowingRadius :Number = 20) :void {}
-    //public function flee(target :Vector3D) :void {}
+
+    #region The public API (one method for each behavior)
+    public void seek(Vector3 target) { steering += doSeek(target); }
+    public void flee(Vector3 target) { steering += doFlee(target); }
+    public void arrival(Vector3 target, float slowingRadius) { steering += doArrival(target, slowingRadius); }
+
     //public function wander() :void {}
     //public function evade(target :IBoid) :void {}
     //public function pursuit(target :IBoid) :void {}
- 
-    //// The update method. 
-    //// Should be called after all behaviors have been invoked
-    //public function update() :void {}
- 
-    //// Reset the internal steering force.
-    //public function reset() :void {}
- 
-    //// The internal API
-    //private function doSeek(target :Vector3D, slowingRadius :Number = 0) :Vector3D {}
-    //private function doFlee(target :Vector3D) :Vector3D {}
-    //private function doWander() :Vector3D {}
-    //private function doEvade(target :IBoid) :Vector3D {}
-    //private function doPursuit(target :IBoid) :Vector3D {}
+    #endregion
 
-
-
-    /// The publish method. 
-    /// Receives a target to seek and a slowingRadius (used to perform arrive).
-    public void seek(Vector3 target, float slowingRadius) 
-    {
-        steering += doSeek(target, slowingRadius);
-    }
- 
-    /// The real implementation of seek (with arrival code included)
-    private Vector3 doSeek(Vector3 target, float slowingRadius) 
+    #region The internal API
+    private Vector3 doSeek(Vector3 target)
     {
         Vector3 force = Vector3.zero;
 
-        //var force :Vector3D;
-        //var distance :Number;
- 
-        //desired = target.subtract(host.getPosition());
- 
-        //distance = desired.length;
-        //desired.normalize();
- 
-        //if (distance <= slowingRadius) {
-        //    desired.scaleBy(host.getMaxVelocity() * distance/slowingRadius);
-        //} else {
-        //    desired.scaleBy(host.getMaxVelocity());
-        //}
- 
-        //force = desired.subtract(host.getVelocity());
+        var desired_velocity = (target - host.transform.position).normalized * host.MAX_VELOCITY;
+
+        force = desired_velocity - host.velocity;
+
+        return force;
+    }
+    private Vector3 doFlee(Vector3 target)
+    {
+        return -doSeek(target);
+    }
+    /// The real implementation of seek (with arrival code included)
+    private Vector3 doArrival(Vector3 target, float slowingRadius)
+    {
+        Vector3 force = Vector3.zero;
+
+        var desired_velocity = target - host.transform.position;
+        var distance = desired_velocity.magnitude;
+        if (distance <= slowingRadius)
+        {
+            desired_velocity = desired_velocity.normalized * host.MAX_VELOCITY * (distance / slowingRadius);
+        }
+        else
+        {
+            desired_velocity = desired_velocity.normalized * host.MAX_VELOCITY;
+        }
+        force = desired_velocity - host.velocity;
 
         return force;
     }
 
+    //private function doWander() :Vector3D {}
+    //private function doEvade(target :IBoid) :Vector3D {}
+    //private function doPursuit(target :IBoid) :Vector3D {}
+    #endregion
+
+
+    /// The update method. 
+    /// Should be called after all behaviors have been invoked
     public void update()
     {
-        Vector3 velocity  = host.getVelocity();
-        Vector3 position  = host.getPosition();
- 
-        //truncate(steering, MAX_FORCE);
-        //steering.scaleBy(1 / host.getMass());
- 
-        //velocity.incrementBy(steering);
-        //truncate(velocity, host.getMaxVelocity());
- 
-        //position.incrementBy(velocity);
+        steering = truncate(steering, MAX_FORCE);
+        steering /= host.mass;
+        host.velocity = truncate(host.velocity + steering, host.MAX_VELOCITY);
+        host.transform.position += host.velocity * Time.deltaTime;
     }
 
-    public Vector3 truncate(Vector3 vector, float max)
+    /// Reset the internal steering force.
+    public void reset()
+    {
+        steering = Vector3.zero;
+    }
+
+    #region Util
+    private Vector3 truncate(Vector3 vector, float max)
     {
         float i = max / vector.magnitude;
 
@@ -95,4 +96,5 @@ public class SteeringManager {
 
         return vector;
     }
+    #endregion
 }
